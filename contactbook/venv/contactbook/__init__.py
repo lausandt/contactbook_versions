@@ -11,14 +11,12 @@ __version__ = "0.1.0"
     DB_WRITE_ERROR,
     JSON_ERROR,
     ID_ERROR,
-    NO_SUCH_CONTACT_ERROR
-) = range(8)
+) = range(7)
 
 ERRORS = {
     DIR_ERROR: "config directory error",
     FILE_ERROR: "config file error",
     DB_READ_ERROR: "database read error",
     DB_WRITE_ERROR: "database write error",
-    ID_ERROR: "contact id error",
-    NO_SUCH_CONTACT_ERROR: 'There is no contact with that name'
+    ID_ERROR: "contact id error"
 }

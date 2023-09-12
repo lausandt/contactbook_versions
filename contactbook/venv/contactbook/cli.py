@@ -7,13 +7,14 @@ from typing import Optional, Any
 from typing_extensions import Annotated
 
 from pathlib import Path
+
 from rich.table import Table
 from rich.console import Console
 from rich import box
 
 import typer
 
-from contactbook import ERRORS, __app_name__, __version__, config, database, contactbook, DB_WRITE_ERROR
+from contactbook import ERRORS, __app_name__, __version__, config, database, contactbook
 
 app = typer.Typer()
 console = Console()
@@ -45,7 +46,7 @@ def init(
     else:
         typer.secho(f"The contact database is {db_path}", fg=typer.colors.MAGENTA)
 
-def get_contact_manager() -> contactbook.ContactManager:
+def _get_contact_manager() -> contactbook.ContactManager:
     if config.CONFIG_FILE_PATH.exists():
         db_path = database.get_database_path(config.CONFIG_FILE_PATH)
     else:
@@ -64,16 +65,16 @@ def get_contact_manager() -> contactbook.ContactManager:
         raise typer.Exit(1)
 
 @app.command()
-def add( # read up on typer.Option()
+def add( 
     name: Annotated[str, typer.Argument()],
-    occupation: Annotated[str, typer.Argument(help='The occupation of the contact written in between "quotation marks"')] = '',
-    phone: Annotated[str, typer.Argument(help='The phonenumber of the contact written in between quotation marks "212-5555-7777"')] = '',
-    email:Annotated[str, typer.Argument(help='the contact`s email address')]='',
-    dangerous: Annotated[bool, typer.Argument(help='Is the contact dangerous False or True')] = False
+    occupation: Annotated[str, typer.Option(help='The occupation of the contact written in between "quotation marks"')] = '',
+    phone: Annotated[str, typer.Option(help='The phonenumber of the contact written in between quotation marks "212-5555-7777"')] = '',
+    email:Annotated[str, typer.Option(help='the contact`s email address')]='',
+    professional: Annotated[bool, typer.Option(help='Is the contact a professional contact False or True')] = False
 ) -> None:
     """Add a new contact with at minimal a name."""
-    cm = get_contact_manager()
-    contact, error = cm.add(name, occupation, phone, email, dangerous)
+    cm = _get_contact_manager()
+    contact, error = cm.add(name, occupation, phone, email, professional)
     if error: 
         typer.secho(
             f'Adding contact failed with "{ERRORS[error]}"', fg=typer.colors.RED
@@ -82,31 +83,31 @@ def add( # read up on typer.Option()
     else:
         typer.secho(
             f"""contact: "{contact.name}" was added"""
-            f""" with occupation: {contact.occupation} phone: {contact.phone} email: {contact.email} dangerous:{contact.dangerous}""",
+            f""" with occupation: {contact.occupation} phone: {contact.phone} email: {contact.email} professional:{contact.professional}""",
             fg=typer.colors.MAGENTA,
         )
 
 @app.command(name="list")
 def list_all() -> None:
     """List all contacts."""
-    cm = get_contact_manager()
+    cm = _get_contact_manager()
     contact_list = cm.get_contact_list()
     if len(contact_list) == 0:
         typer.secho(
             "There are no contacts in the list yet", fg=typer.colors.RED
         )
         raise typer.Exit()
-    typer.secho("\ncontact list:\n", fg=typer.colors.BLUE, bold=True)
-    table = Table("ID", "Name", "Occupation", "Phone", "Email", "Dangerous", title='my contacts', box=box.ROUNDED)
+    typer.secho("\n")
+    table = Table("ID", "Name", "Occupation", "Phone", "Email", "Professional", title='my contacts', box=box.ROUNDED)
     for id, contact in enumerate(contact_list, 1):
-        name, occupation, phone, email, dangerous = contact.values()
-        table.add_row(str(id), name, occupation, phone, email, str(dangerous), style="magenta")
+        name, occupation, phone, email, professional = contact._asdict().values()
+        table.add_row(str(id), name, occupation, phone, email, str(professional), style="magenta")
     console.print(table)
 
 @app.command()
-def find(name:str)->None:
-    """find all contacts with that name."""
-    cm = get_contact_manager()
+def find(name: Annotated[str,typer.Argument(help='the name of the contact you are looking for')])->None:
+    """find all contacts with the given name."""
+    cm = _get_contact_manager()
     contacts = cm.find_contact(name)
     if len(contacts) == 0:
         typer.secho(
@@ -117,44 +118,44 @@ def find(name:str)->None:
         contact = contacts[0]
         typer.secho(
             f"""contact: "{contact.name}" """
-            f""" occupation: {contact.occupation} phone: {contact.phone} email: {contact.email} dangerous:{contact.dangerous}""",
+            f""" occupation: {contact.occupation} phone: {contact.phone} email: {contact.email} professional:{contact.professional}""",
             fg=typer.colors.MAGENTA,
         )
     else:
-        typer.secho("There are multiple results", fg=typer.colors.GREEN)
-        table = Table("ID", "Name", "Occupation", "Phone","Email", "Dangerous", title='find results', box=box.ROUNDED)
+        typer.secho(f"There are multiple contacts named {name}", fg=typer.colors.GREEN)
+        table = Table("ID", "Name", "Occupation", "Phone","Email", "Professional", title='find results', box=box.ROUNDED)
         for id, contact in enumerate(contacts, 1):
-            name, occupation, phone, email, dangerous = contact._asdict().values()
-            table.add_row(str(id), name, occupation, phone, email, str(dangerous), style="yellow")
+            name, occupation, phone, email, professional = contact._asdict().values()
+            table.add_row(str(id), name, occupation, phone, email, str(professional), style="yellow")
         console.print(table)
         id = typer.prompt('Please choose per ID')
         contact = contacts[int(id)-1]
         typer.secho(
             f"""contact: "{contact.name}" """
-            f""" occupation: {contact.occupation} phone: {contact.phone} email: {contact.email} dangerous:{contact.dangerous}""",
+            f""" occupation: {contact.occupation} phone: {contact.phone} email: {contact.email} professional:{contact.professional}""",
             fg=typer.colors.MAGENTA,
         )
 
 @app.command()
 def remove()->None:
-    """Remove contact from a list"""
-    cm = get_contact_manager()
+    """Remove a contact from the list"""
+    cm = _get_contact_manager()
     contacts = cm.get_contact_list()
     if len(contacts) == 0:
         typer.secho(
             f"There are no contacts", fg=typer.colors.RED
         )
         raise typer.Exit()
-    table = Table("ID", "Name", "Occupation", "Phone", "Email", "Dangerous", title='current contacts', box=box.ROUNDED)
+    table = Table("ID", "Name", "Occupation", "Phone", "Email", "Professional", title='current contacts', box=box.ROUNDED)
     for id, contact in enumerate(contacts, 1):
-        name, occupation, phone, email, dangerous = contact.values()
-        table.add_row(str(id), name, occupation, email, phone, str(dangerous), style="yellow")
+        name, occupation, phone, email, professional = contact._asdict().values()
+        table.add_row(str(id), name, occupation, email, phone, str(professional), style="yellow")
     console.print(table)
     id = typer.prompt('which contact do you want to remove? Please select an ID')
-    contact = contactbook.Contact(**contacts[int(id)-1])
+    contact = contacts[int(id)-1]
     typer.secho(
             f"""contact: "{contact.name}" """
-            f""" occupation: {contact.occupation} phone: {contact.phone} email: {contact.email} dangerous:{contact.dangerous}""",
+            f""" occupation: {contact.occupation} phone: {contact.phone} email: {contact.email} professional:{contact.professional}""",
             fg=typer.colors.MAGENTA,
         )
     delete = typer.confirm(f"Are you sure you want to delete {contact.name} ?")
@@ -163,45 +164,35 @@ def remove()->None:
         raise typer.Exit()
     contact, error = cm.remove_contact(int(id))
     if error:
-        print(ERRORS[DB_WRITE_ERROR])
+        print(ERRORS[error])
     else:
         print(f"Deleting {contact.name}!")
 
 @app.command(name='change')
 def change_contact()->None:
     '''changes a contact's attribute to a new value '''
-    cm = get_contact_manager()
+    cm = _get_contact_manager()
     contacts = cm.get_contact_list()
     if len(contacts) == 0:
         typer.secho(
             f"There are no contacts", fg=typer.colors.RED
         )
         raise typer.Exit()
-    table = Table("ID", "name", "occupation", "phone","email", "dangerous", title='current contacts', box=box.ROUNDED)
+    table = Table("ID", "name", "occupation", "phone","email", "professional", title='current contacts', box=box.ROUNDED)
     for id, contact in enumerate(contacts, 1):
-        name, occupation, phone, email, dangerous = contact.values()
-        table.add_row(str(id), name, occupation, phone, email, str(dangerous), style="yellow")
+        name, occupation, phone, email, professional = contact._asdict().values()
+        table.add_row(str(id), name, occupation, phone, email, str(professional), style="yellow")
     console.print(table)
-    id = typer.prompt('Please choose per ID')
+    id = typer.prompt('which contact do you want to change? Please choose per ID')
     attr = typer.prompt('What attribute do you want to change?')
-    if attr not in contactbook.Contact._fields:
-        typer.secho('This attribute is unknown', fg=typer.colors.RED)
-        raise typer.Exit()
     value = typer.prompt('what should the value be?')
-    contact, error = cm.change_contact(int(id), attr, value.lower())
-    if not error:
-        typer.secho(f'''contact: {contact.name} occupation: {contact.occupation} phone: {contact.phone} 
-                    email: {contact.email} dangerous: {contact.dangerous}''', 
-                    fg=typer.colors.MAGENTA)
+    contact, error = cm.change_contact(int(id), attr.lower(), value)
+    if error:
+        print(error)
     else:
-        print(ERRORS[DB_WRITE_ERROR])
-        
-
-    
-
-
-
-    
+        typer.secho(f'''contact: {contact.name} occupation: {contact.occupation} phone: {contact.phone} 
+                    email: {contact.email} professional: {contact.professional}''', fg=typer.colors.MAGENTA)
+                 
     
 def _version_callback(value: bool) -> None:
     if value:

@@ -27,15 +27,15 @@ test_data1 = contactbook.Contact(
         occupation= "Physicist & big bed theorist",
         phone="0612055453",
         email="george@sleepy_genius.org",
-        dangerous= False,
-    )
+        professional=False,
+)
 
 test_data2 = contactbook.Contact(
         name= "Rhino",
         occupation= "Slacker God",
         phone= "06-i-am-in-your-head",
         email= "running_around_naked@snorting_loudly.god",
-        dangerous= False
+        professional= False
     )
 
 test_data3 = contactbook.Contact(
@@ -43,7 +43,7 @@ test_data3 = contactbook.Contact(
     occupation= "Salty",
     phone="0644378446",
     email='snacking@delicous_herons.com',
-    dangerous= True
+    professional= True
 )
 
 test_data4 = contactbook.Contact(
@@ -51,7 +51,7 @@ test_data4 = contactbook.Contact(
     occupation= "Purple fashionista",
     phone= "06-PURPLE",
     email='purple@fashionista.god',
-    dangerous= True,        
+    professional=True,        
 )
 
 @pytest.mark.parametrize(
@@ -90,10 +90,10 @@ def mock_json_file_two(tmp_path):
     return db_file
 
 @pytest.mark.parametrize('input, expected', [
-    pytest.param('George', 1),
-    pytest.param('Croc', 1),
-    pytest.param('Ente', 0),
-    pytest.param('Rhino',2)
+    ('George', 1),
+    ('Croc', 1),
+    ('Ente', 0),
+    ('Rhino',2)
 ])
 def test_find(mock_json_file_two, input, expected):
     cm = contactbook.ContactManager(mock_json_file_two)
@@ -101,14 +101,14 @@ def test_find(mock_json_file_two, input, expected):
 
 @pytest.mark.parametrize('input, expected', [
     pytest.param(1, [
-        test_data2._asdict(),
-        test_data3._asdict(),
-        test_data4._asdict()
+        test_data2,
+        test_data3,
+        test_data4
             ]),
     pytest.param(3, [  
-        test_data1._asdict(),            
-        test_data2._asdict(),
-        test_data4._asdict() 
+        test_data1,            
+        test_data2,
+        test_data4 
             ]),
     
 ])
@@ -119,18 +119,18 @@ def test_remove_contact(mock_json_file_two, input, expected):
 
 
 @pytest.mark.parametrize('id, attr, value, expected', [
-    pytest.param(1, 'dangerous', True, 
+    pytest.param(1, 'professional', True, 
         {"name": "George",
          "occupation": "Physicist & big bed theorist",
          "phone":"0612055453",
          "email":"george@sleepy_genius.org",
-         "dangerous": True}),
+         "professional": True}),
     pytest.param(3, "email", "ineed@coteduboeuf.fr", {
     "name":"Croc", 
     "occupation": "Salty",
     "phone":"0644378446",
     "email":"ineed@coteduboeuf.fr",
-    "dangerous": True
+    "professional": True
 })
 ])
 def test_change_contact(mock_json_file_two, id, attr, value, expected):
