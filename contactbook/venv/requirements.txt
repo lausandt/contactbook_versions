@@ -3,3 +3,4 @@ colorama==0.4.5
 shellingham==1.5.3
 pytest==7.4.1
 rich==13.5.2
+pandas=2.1.0
